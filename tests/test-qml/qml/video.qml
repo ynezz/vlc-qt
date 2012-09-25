@@ -20,20 +20,35 @@ import QtQuick 1.1
 import VLCQt 0.6
 
 Rectangle {
-    width: 640
-    height: 480
+	id: root
+	width: 820
+	height: 420
+	color: "black"
 
-    VlcVideoPlayer
-    {
-        id: vidwidget
-        anchors.fill: parent
+	VlcVideoPlayer {
+		id: videowidget
+		anchors.fill: parent
 
-        MouseArea {
-            anchors.fill: parent
-            onClicked: {
-                vidwidget.openFile("/home/tadej/Video/Yugo.mpeg")
-                vidwidget.play()
-            }
-        }
-    }
+		/*
+		source: "d:/big_buck_bunny_1080p_surround.avi"
+		source: "http://devimages.apple.com/iphone/samples/bipbop/gear1/prog_index.m3u8"
+		source: "mms://live1.wm.skynews.servecast.net/skynews_wmlz_live300k"
+		*/
+
+		source: "http://content.bitsontherun.com/videos/nfSyO85Q-52qL9xLP.mp4"
+
+		Component.onCompleted: play()
+		MouseArea {
+			anchors.fill: parent
+			onClicked: {
+				if (!videowidget.paused) {
+					console.log("pause, media: " + videowidget.source)
+					videowidget.pause()
+				} else {
+					console.log("resume, media: " + videowidget.source)
+					videowidget.resume()
+				}
+			}
+		}
+	}
 }
