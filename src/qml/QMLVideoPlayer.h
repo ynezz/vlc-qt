@@ -23,12 +23,16 @@
 #include <QtCore/QTimer>
 #include <QtDeclarative/QDeclarativeItem>
 
+#include "Enums.h"
 #include "SharedExport.h"
 
 class VlcAudio;
 class VlcInstance;
 class VlcMedia;
 class VlcMediaPlayer;
+
+/* necessary workaround for bug? in moc */
+using namespace Vlc;
 
 class VLCQT_EXPORT VlcQMLVideoPlayer : public QDeclarativeItem
 {
@@ -37,22 +41,43 @@ public:
 	explicit VlcQMLVideoPlayer(QDeclarativeItem *parent = 0);
 	~VlcQMLVideoPlayer();
 
-	Q_INVOKABLE void close();
-	Q_INVOKABLE void openFile(const QString &file);
-	Q_INVOKABLE void openStream(const QString &stream);
-	Q_INVOKABLE void pause();
-	Q_INVOKABLE void play();
-	Q_INVOKABLE void stop();
+	Q_ENUMS(State);
+
+	Q_PROPERTY(State state READ state NOTIFY stateChanged);
+	Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged);
+	Q_PROPERTY(bool playing READ playing WRITE setPlaying NOTIFY playingChanged);
+	Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged);
 
 	QImage *_frame;
 	QMutex _mutex;
+
+	State state() const;
+	QString source() const;
+	bool playing() const;
+	bool paused() const;
 
 protected:
 	void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = 0);
 	void geometryChanged(const QRectF &newGeometry, const QRectF &oldGeometry);
 
+signals:
+	void stateChanged();
+	void sourceChanged();
+	void playingChanged();
+	void pausedChanged();
+
+public slots:
+	void setSource(const QString &source);
+	void setPlaying(const bool &p) { p ? play() : stop(); }
+	void setPaused(bool p) { p ? pause() : resume(); }
+	void pause();
+	void resume();
+	void play();
+	void stop();
+
 private slots:
 	void updateFrame();
+	void playerStateChanged();
 
 private:
 	void openInternal();
@@ -63,6 +88,8 @@ private:
 
 	VlcAudio *_audioManager;
 
+	bool _playing;
+	bool _paused;
 	bool _hasMedia;
 	int _currentTime;
 	QTimer *_timer;

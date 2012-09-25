@@ -57,7 +57,9 @@ static void unlock(void *core, void *picture, void *const *planes)
 
 VlcQMLVideoPlayer::VlcQMLVideoPlayer(QDeclarativeItem *parent)
     : QDeclarativeItem(parent),
-      _hasMedia(false)
+      _hasMedia(false),
+      _playing(false),
+      _paused(false)
 {
     setFlag(QGraphicsItem::ItemHasNoContents,false);
     setFlag(QGraphicsItem::ItemIsFocusable,true);
@@ -71,6 +73,8 @@ VlcQMLVideoPlayer::VlcQMLVideoPlayer(QDeclarativeItem *parent)
     _timer = new QTimer(this);
     connect(_timer,SIGNAL(timeout()),this,SLOT(updateFrame()));
     _timer->start(40); // FPS: 25
+
+    connect(_player,SIGNAL(stateChanged()),this,SLOT(playerStateChanged()));
 }
 
 VlcQMLVideoPlayer::~VlcQMLVideoPlayer()
@@ -117,36 +121,28 @@ void VlcQMLVideoPlayer::paint(QPainter *painter, const QStyleOptionGraphicsItem 
     _mutex.unlock();
 }
 
-void VlcQMLVideoPlayer::close()
+void VlcQMLVideoPlayer::setSource(const QString &source)
 {
-    _hasMedia = false;
+    if (_media) {
+        if (_media->currentLocation() == source)
+            return;
 
-    _player->stop();
-}
-
-void VlcQMLVideoPlayer::openFile(const QString &file)
-{
-    if (_media)
         delete _media;
+    }
 
-    _media = new VlcMedia(file, true, _instance);
+    if (source.contains(QString("://"))) {
+        _media = new VlcMedia(source, false, _instance);
+    } else {
+        _media = new VlcMedia(source, true, _instance);
+    }
 
-    openInternal();
-}
-
-void VlcQMLVideoPlayer::openStream(const QString &stream)
-{
-    if (_media)
-        delete _media;
-
-    _media = new VlcMedia(stream, false, _instance);
-
+    emit sourceChanged();
     openInternal();
 }
 
 void VlcQMLVideoPlayer::openInternal()
 {
-    _player->open(_media);
+    _player->openOnly(_media);
 
     libvlc_video_set_callbacks(_player->core(), lock, unlock, display, this);
     libvlc_video_set_format(_player->core(), "RV32", _frame->width(), _frame->height(), _frame->width() * 4);
@@ -169,8 +165,65 @@ void VlcQMLVideoPlayer::stop()
     _player->stop();
 }
 
+void VlcQMLVideoPlayer::resume()
+{
+    _playing = true;
+    _paused = false;
+    _player->resume();
+}
+
 void VlcQMLVideoPlayer::updateFrame()
 {
     //Fix for cpu usage of calling update inside unlock.
     update(boundingRect());
+}
+
+Vlc::State VlcQMLVideoPlayer::state() const
+{
+    return _player->state();
+}
+
+void VlcQMLVideoPlayer::playerStateChanged()
+{
+     emit stateChanged();
+
+     switch (state()) {
+         case Vlc::Playing:
+             if (!_playing) {
+                 _playing = true;
+                 _paused = false;
+                 emit playingChanged();
+             }
+         break;
+         case Vlc::Stopped:
+             if (_playing) {
+                 _playing = false;
+                 emit playingChanged();
+             }
+         break;
+         case Vlc::Paused:
+             if (!_paused) {
+                 _paused = true;
+                 emit pausedChanged();
+             }
+         break;
+     }
+}
+
+QString VlcQMLVideoPlayer::source() const
+{
+    if (!_media)
+        return QString();
+
+    return _media->currentLocation();
+}
+
+bool VlcQMLVideoPlayer::playing() const
+{
+    return _playing;
+}
+
+bool VlcQMLVideoPlayer::paused() const
+{
+    return _paused;
 }
