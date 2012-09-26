@@ -47,6 +47,7 @@ public:
 	Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged);
 	Q_PROPERTY(bool playing READ playing WRITE setPlaying NOTIFY playingChanged);
 	Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged);
+	Q_PROPERTY(int volume READ volume WRITE setVolume);
 
 	QImage *_frame;
 	QMutex _mutex;
@@ -55,6 +56,7 @@ public:
 	QString source() const;
 	bool playing() const;
 	bool paused() const;
+	int volume() const;
 
 protected:
 	void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = 0);
@@ -70,6 +72,7 @@ public slots:
 	void setSource(const QString &source);
 	void setPlaying(const bool &p) { p ? play() : stop(); }
 	void setPaused(bool p) { p ? pause() : resume(); }
+	void setVolume(int vol);
 	void pause();
 	void resume();
 	void play();

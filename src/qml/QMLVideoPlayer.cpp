@@ -227,3 +227,13 @@ bool VlcQMLVideoPlayer::paused() const
 {
     return _paused;
 }
+
+int VlcQMLVideoPlayer::volume() const
+{
+    return _player->audio()->volume();
+}
+
+void  VlcQMLVideoPlayer::setVolume(int vol)
+{
+    _player->audio()->setVolume(vol);
+}
