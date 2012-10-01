@@ -59,7 +59,9 @@ VlcQMLVideoPlayer::VlcQMLVideoPlayer(QDeclarativeItem *parent)
     : QDeclarativeItem(parent),
       _hasMedia(false),
       _playing(false),
-      _paused(false)
+      _paused(false),
+      _position(0),
+      _duration(0)
 {
     setFlag(QGraphicsItem::ItemHasNoContents,false);
     setFlag(QGraphicsItem::ItemIsFocusable,true);
@@ -73,6 +75,10 @@ VlcQMLVideoPlayer::VlcQMLVideoPlayer(QDeclarativeItem *parent)
     _timer = new QTimer(this);
     connect(_timer,SIGNAL(timeout()),this,SLOT(updateFrame()));
     _timer->start(40); // FPS: 25
+
+    _updateTimer = new QTimer(this);
+    connect(_updateTimer,SIGNAL(timeout()),this,SLOT(updateTimerFired()));
+    _updateTimer->start(100);
 
     connect(_player,SIGNAL(stateChanged()),this,SLOT(playerStateChanged()));
 }
@@ -180,9 +186,9 @@ void VlcQMLVideoPlayer::updateFrame()
     update(boundingRect());
 }
 
-Vlc::State VlcQMLVideoPlayer::state() const
+VlcQMLVideoPlayer::State VlcQMLVideoPlayer::state() const
 {
-    return _player->state();
+    return (State) _player->state();
 }
 
 void VlcQMLVideoPlayer::playerStateChanged()
@@ -235,7 +241,56 @@ int VlcQMLVideoPlayer::volume() const
     return _player->audio()->volume();
 }
 
-void  VlcQMLVideoPlayer::setVolume(int vol)
+int VlcQMLVideoPlayer::duration() const
 {
+    return _player->length();
+}
+
+int VlcQMLVideoPlayer::position() const
+{
+    return _player->position() * _duration;
+}
+
+void VlcQMLVideoPlayer::setVolume(int vol)
+{
+    if (_volume == vol)
+        return;
+
+    _volume = vol;
     _player->audio()->setVolume(vol);
+}
+
+void VlcQMLVideoPlayer::setPosition(int pos)
+{
+    if (!_media)
+        return;
+
+    if (_duration == 0)
+        return;
+
+    _player->setPosition((qreal)pos/_duration);
+}
+
+void VlcQMLVideoPlayer::updateTimerFired()
+{
+    if (!_media || !_player)
+        return;
+
+    int v = _player->audio()->volume();
+    if (_volume != v) {
+        _volume = v;
+        emit volumeChanged();
+    }
+
+    float p = _player->position();
+    if (_position != p) {
+        _position = p;
+        emit positionChanged();
+    }
+
+    int time = _player->length();
+    if (_duration != time) {
+        _duration = time;
+        emit durationChanged();
+    }
 }

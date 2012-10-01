@@ -31,9 +31,6 @@ class VlcInstance;
 class VlcMedia;
 class VlcMediaPlayer;
 
-/* necessary workaround for bug? in moc */
-using namespace Vlc;
-
 class VLCQT_EXPORT VlcQMLVideoPlayer : public QDeclarativeItem
 {
 Q_OBJECT
@@ -41,6 +38,16 @@ public:
 	explicit VlcQMLVideoPlayer(QDeclarativeItem *parent = 0);
 	~VlcQMLVideoPlayer();
 
+	enum State {
+		Idle,
+		Opening,
+		Buffering,
+		Playing,
+		Paused,
+		Stopped,
+		Ended,
+		Error
+	};
 	Q_ENUMS(State);
 
 	Q_PROPERTY(State state READ state NOTIFY stateChanged);
@@ -48,6 +55,8 @@ public:
 	Q_PROPERTY(bool playing READ playing WRITE setPlaying NOTIFY playingChanged);
 	Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged);
 	Q_PROPERTY(int volume READ volume WRITE setVolume);
+	Q_PROPERTY(int position READ position WRITE setPosition NOTIFY positionChanged);
+	Q_PROPERTY(int duration READ duration NOTIFY durationChanged);
 
 	QImage *_frame;
 	QMutex _mutex;
@@ -57,6 +66,8 @@ public:
 	bool playing() const;
 	bool paused() const;
 	int volume() const;
+	int position() const;
+	int duration() const;
 
 protected:
 	void paint(QPainter *painter, const QStyleOptionGraphicsItem *option, QWidget *widget = 0);
@@ -67,12 +78,16 @@ signals:
 	void sourceChanged();
 	void playingChanged();
 	void pausedChanged();
+	void positionChanged();
+	void volumeChanged();
+	void durationChanged();
 
 public slots:
 	void setSource(const QString &source);
 	void setPlaying(const bool &p) { p ? play() : stop(); }
 	void setPaused(bool p) { p ? pause() : resume(); }
 	void setVolume(int vol);
+	void setPosition(int pos);
 	void pause();
 	void resume();
 	void play();
@@ -81,6 +96,7 @@ public slots:
 private slots:
 	void updateFrame();
 	void playerStateChanged();
+	void updateTimerFired();
 
 private:
 	void openInternal();
@@ -94,8 +110,11 @@ private:
 	bool _playing;
 	bool _paused;
 	bool _hasMedia;
-	int _currentTime;
+	int _duration;
+	int _volume;
+	qreal _position;
 	QTimer *_timer;
+	QTimer *_updateTimer;
 };
 
 #endif // VLCQT_QMLVIDEOPLAYER_H_
