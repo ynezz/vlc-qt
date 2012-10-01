@@ -54,7 +54,7 @@ public:
 	Q_PROPERTY(QString source READ source WRITE setSource NOTIFY sourceChanged);
 	Q_PROPERTY(bool playing READ playing WRITE setPlaying NOTIFY playingChanged);
 	Q_PROPERTY(bool paused READ paused WRITE setPaused NOTIFY pausedChanged);
-	Q_PROPERTY(int volume READ volume WRITE setVolume);
+	Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY volumeChanged);
 	Q_PROPERTY(int position READ position WRITE setPosition NOTIFY positionChanged);
 	Q_PROPERTY(int duration READ duration NOTIFY durationChanged);
 
